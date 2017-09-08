@@ -1,0 +1,34 @@
+version: '3'
+services:
+  api:
+    image: vasilenko/bering-api
+    environment:
+      - PORT=4000
+      - POSTGRES_URL=postgres://bering:bering@postgres/bering
+      - ENDPOINT_SECRET_KEY=tl0SssQKZuoEq8GL5RWdWL50suwaei/13oyzvmF1ZyHTy27bDttQVr2KxwpODKM7
+    links:
+      - postgres
+    entrypoint: dockerize -wait tcp://postgres:5432 -timeout 60s ./bin/bering foreground
+
+  client:
+    image: vasilenko/bering-client
+    entrypoint: pm2-docker start pm2.config.js --env production
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    links:
+      - api
+      - client
+    volumes:
+      - ./config/nginx/bering.conf:/etc/nginx/conf.d/bering.conf
+
+  postgres:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=bering
+      - POSTGRES_PASSWORD=bering
+      - POSTGRES_DB=bering
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data
